@@ -16,6 +16,14 @@ def ping(url, options = {})
   Net::Ping::HTTP.new(url, port, timeout).ping
 end
 
+def http(url)
+  unless url.match(/^http/)
+    "http://#{url}"
+  else
+    url
+  end
+end
+
 configure :development do
   DataMapper.setup(:default, "sqlite://#{Dir.pwd}/relink.db")
 end
@@ -64,7 +72,6 @@ end
 DataMapper.finalize
 DataMapper.auto_upgrade!
 
-
 class Relink < Sinatra::Base
   set :haml, {:format => :html5}
 
@@ -78,12 +85,20 @@ class Relink < Sinatra::Base
   end
 
   post '/' do
+    url = http(params[:url])
+    mirror = http(params[:mirror])
+
     link = Link.create(
-      :url => params[:url],
-      :mirror => params[:mirror],
+      :url => url,
+      :mirror => mirror,
       :last_result => false,
       :last_pinged_at => nil
     )
+
+    if link.nil?
+      redirect "/"
+    end
+
     link.ping!
     redirect "/l/#{link.id}/view"
   end
