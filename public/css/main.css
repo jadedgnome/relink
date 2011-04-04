@@ -5,22 +5,19 @@ html, body {
 }
 
 #main {
-	width: 980px;
-	margin: 0 auto;
+	width: 80%;
+	margin: auto;
 }
 header {
 	margin-bottom: 25px;
+  text-align: center;
+  clear: both;
 }
 header h1 {
-	background: url('/img/compsoc.png');
-	width: 233px;
-	height: 41px;
-	margin: 25px 0 9px 0;
+	margin: 25px 9px 9px 9px;
+	color: #cc3333;
+	font-size: 60px;
 }
-header h1 span {
-	display: none;
-}
-
 nav {
 	float: right;
 	padding: 10px;
@@ -61,6 +58,32 @@ footer {
 	clear: both;
 }
 /* form */
+form {
+	line-height: 20px;
+	font-size: 20px;
+  font: bold 0.95em arial, sans-serif;
+  border-radius: 0.4em;
+  margin-left: auto;
+  margin-right: auto;
+  clear: both;
+}
+form input {
+	line-height: 43px;
+	font-size: 20px;
+	padding: 10px;
+  border: 1px solid #DDD;
+  font: bold 0.95em arial, sans-serif;
+  border-radius: 0.4em;
+  width: 100%;
+}
+form label {
+  position:absolute;
+  top:0;
+  left:0;
+	line-height: 43px;
+	font-size: 20px;
+	padding: 15px;
+}
 textarea {
 	width: 960px;
 }
@@ -71,6 +94,7 @@ button[type=submit] {
 	line-height: 20px;
 	font-size: 20px;
 	padding: 10px;
+  cursor: pointer;
 }
 .submit {
 	text-align: center;
@@ -106,4 +130,16 @@ button[type=submit] {
 }
 .timeago {
   border-bottom: 1px dotted #333;
+}
+
+li {
+  position: relative;
+}
+
+#form {
+  margin-left: auto;
+  margin-right: auto;
+  display: block;
+  position: relative;
+  width: 50%;
 }
