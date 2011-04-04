@@ -6,14 +6,32 @@ require 'dm-migrations'
 require 'dm-validations'
 require 'dm-timestamps'
 
-require 'net/ping'
+require 'timeout'
+require 'net/http'
 
 URL_REGEX = /^(http|https):\/\/[a-z0-9]+([\-\.]{1}[a-z0-9]+)*\.[a-z]{2,5}(([0-9]{1,5})?\/.*)?$/ix
 
 def ping(url, options = {})
-  port = options[:port] || nil
   timeout = options[:timeout] || 3
-  Net::Ping::HTTP.new(url, port, timeout).ping
+  uri = URI.parse(url)
+  begin
+    status = Timeout::timeout(timeout) do
+      Net::HTTP.start(uri.host) do |http|
+        if uri.path.empty?
+          path = "/"
+        else
+          path = uri.path
+        end
+
+        req = Net::HTTP::Get.new(path)
+        http.request(req)
+      end
+      true
+    end
+    status
+  rescue Timeout::Error
+    false
+  end
 end
 
 def http(url)
