@@ -110,6 +110,10 @@ class Relink < Sinatra::Base
       redirect '/'
     end
 
+    if link.nil?
+      redirect "/"
+    end
+
     if link.ping_again?
       link.ping!
     end
