@@ -38,6 +38,11 @@ nav a:hover {
 /* type */
 p {
 	padding: 10px 0;
+  text-align: center;
+}
+
+p.view {
+	font-size: 24px;
 }
 pre, textarea {
 	text-align: left;

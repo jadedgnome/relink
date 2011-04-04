@@ -85,7 +85,7 @@ class Relink < Sinatra::Base
       :last_pinged_at => nil
     )
     link.ping!
-    redirect "/l/#{link.id}"
+    redirect "/l/#{link.id}/view"
   end
 
   get '/l/:link' do |l|
@@ -100,5 +100,15 @@ class Relink < Sinatra::Base
     end
 
     redirect link.link, 301
+  end
+
+  get '/l/:link/view' do |l|
+    begin
+      @link = Link.get(l)
+    rescue DataMapper::ObjectNotFoundError
+      redirect '/'
+    end
+
+    haml :view
   end
 end
