@@ -10,6 +10,7 @@ require 'timeout'
 require 'net/http'
 
 URL_REGEX = /^(http|https):\/\/[a-z0-9]+([\-\.]{1}[a-z0-9]+)*\.[a-z]{2,5}(([0-9]{1,5})?\/.*)?$/ix
+BAD_CODES = ['404', '405', '500', '503', '504']
 
 def ping(url, options = {})
   timeout = options[:timeout] || 3
@@ -23,8 +24,9 @@ def ping(url, options = {})
           path = uri.path
         end
 
-        req = Net::HTTP::Get.new(path)
-        http.request(req)
+        http.request_get(path) do |res|
+          return false if BAD_CODES.include? res.code
+        end
       end
       true
     end
