@@ -5,3 +5,5 @@ also just hate it when your content is mirrored and you don't get credit for
 your work.
 
 Yeah, this will fix that or something.
+
+CSS mainly by @oliland
