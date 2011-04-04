@@ -1,0 +1,11 @@
+%form{:method => "POST"}
+  %fieldset
+    %ol
+      %li
+        %label{:for => "url"} URL:
+        %input{:type => "text", :name => "url", :class => "text"}
+      %li
+        %label{:for => "mirror"} Mirror:
+        %input{:type => "text", :name => "mirror", :class => "text"}
+    %p.submit
+      %button{:type => "submit"} Link Me Up
