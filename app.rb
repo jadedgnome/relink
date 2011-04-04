@@ -88,6 +88,10 @@ class Relink < Sinatra::Base
     url = http(params[:url])
     mirror = http(params[:mirror])
 
+    if URI.parse(url).host == "relink.heroku.com"
+      redirect "/"
+    end
+
     link = Link.create(
       :url => url,
       :mirror => mirror,
@@ -116,6 +120,10 @@ class Relink < Sinatra::Base
 
     if link.ping_again?
       link.ping!
+    end
+
+    if URI.parse(link.link).host == "relink.heroku.com"
+      redirect "/"
     end
 
     redirect link.link, 301
