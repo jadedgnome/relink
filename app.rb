@@ -85,6 +85,10 @@ class Relink < Sinatra::Base
   end
 
   post '/' do
+    if params[:url].empty? || params[:mirror].empty?
+      redirect "/"
+    end
+
     url = http(params[:url])
     mirror = http(params[:mirror])
 
