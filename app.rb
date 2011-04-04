@@ -56,7 +56,7 @@ class Link
   end
 
   def ping_again?
-    diff_seconds = (last_pinged_at - DateTime.now).round
+    diff_seconds = (DateTime.now - last_pinged_at).round
     diff_seconds > 600
   end
 
