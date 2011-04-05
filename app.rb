@@ -131,7 +131,17 @@ class Relink < Sinatra::Base
     redirect "/l/#{link.id}/view"
   end
 
-  get '/l/:link' do |l|
+  get '/l/:link/view/?' do |l|
+    begin
+      @link = Link.get(l)
+    rescue DataMapper::ObjectNotFoundError
+      redirect '/'
+    end
+
+    haml :view
+  end
+
+  get '/l/:link/?' do |l|
     begin
       link = Link.get(l)
     rescue DataMapper::ObjectNotFoundError
@@ -153,13 +163,7 @@ class Relink < Sinatra::Base
     redirect link.link, 301
   end
 
-  get '/l/:link/view' do |l|
-    begin
-      @link = Link.get(l)
-    rescue DataMapper::ObjectNotFoundError
-      redirect '/'
-    end
-
-    haml :view
+  get '/l/:link/*/?' do |l, star|
+    redirect "/l/#{l}/"
   end
 end

@@ -1,4 +1,4 @@
 %p.view
   Your link is:
-  %a{:href => "/l/#{@link.id}"}
+  %a{:href => "/l/#{@link.id}/u/#{URI.parse(@link.url).host}/m/#{URI.parse(@link.mirror).host}"}
     here
