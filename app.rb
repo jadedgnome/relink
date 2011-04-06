@@ -1,48 +1,10 @@
 require 'sinatra'
+require 'dm-core'
 
 require 'haml'
-require 'dm-core'
-require 'dm-migrations'
-require 'dm-validations'
-require 'dm-timestamps'
 
 require 'timeout'
 require 'net/http'
-
-URL_REGEX = /^(http|https):\/\/[a-z0-9]+([\-\.]{1}[a-z0-9]+)*\.[a-z]{2,5}(([0-9]{1,5})?\/.*)?$/ix
-BAD_CODES = ['404', '405', '500', '503', '504']
-
-def ping(url, options = {})
-  timeout = options[:timeout] || 3
-  uri = URI.parse(url)
-  begin
-    status = Timeout::timeout(timeout) do
-      Net::HTTP.start(uri.host) do |http|
-        if uri.path.empty?
-          path = "/"
-        else
-          path = uri.path
-        end
-
-        http.request_get(path) do |res|
-          return false if BAD_CODES.include? res.code
-        end
-      end
-      true
-    end
-    status
-  rescue Timeout::Error
-    false
-  end
-end
-
-def http(url)
-  unless url.match(/^http/)
-    "http://#{url}"
-  else
-    url
-  end
-end
 
 configure :development do
   DataMapper.setup(:default, "sqlite://#{Dir.pwd}/relink.db")
@@ -52,118 +14,113 @@ configure :production do
   DataMapper.setup(:default, ENV['DATABASE_URL'])
 end
 
-DataMapper::Model.raise_on_save_failure = true
+require './lib/core_ext'
+require './lib/models'
+require './lib/redirect_follower'
 
-class Link
-  include DataMapper::Resource
+def ping(url, options = {})
+  timeout = options[:timeout] || 3
 
-  property :id, Serial
-
-  property :url, String
-  property :mirror, String
-
-  property :last_result, Boolean, :default => false
-  property :last_pinged_at, DateTime
-
-  property :created_at, DateTime
-
-  validates_presence_of :url, :mirror
-  validates_format_of :url, :with => URL_REGEX
-  validates_format_of :mirror, :with => URL_REGEX
-
-  def ping!
-    update(:last_result => ping(url), :last_pinged_at => DateTime.now)
-  end
-
-  def ping_again?
-    diff_seconds = (DateTime.now - last_pinged_at).round
-    diff_seconds > 600
-  end
-
-  def link
-    if last_result
-      url
+  uri = URI.parse(url)
+  puts url
+  begin
+    http = Net::HTTP.new(uri.host)
+    http.read_timeout = timeout
+    path = uri.path.empty? ? "/" : uri.path
+    res = http.get(path)
+    if res.code.good?
+      false
     else
-      mirror
+      true
     end
+  rescue Errno::ETIMEDOUT
+    false
   end
 end
 
-DataMapper.finalize
-DataMapper.auto_upgrade!
+module Relink
+  class Relink < Sinatra::Base
+    set :haml, {:format => :html5}
 
-class Relink < Sinatra::Base
-  set :haml, {:format => :html5}
-
-  helpers do
-    include Rack::Utils
-    alias_method :h, :escape_html
-  end
-
-  get '/' do
-    haml :index
-  end
-
-  post '/' do
-    if params[:url].empty? || params[:mirror].empty?
-      redirect "/"
+    helpers do
+      include Rack::Utils
+      alias_method :h, :escape_html
     end
 
-    url = http(params[:url])
-    mirror = http(params[:mirror])
-
-    if URI.parse(url).host == "relink.heroku.com"
-      redirect "/"
+    get '/' do
+      haml :index
     end
 
-    link = Link.create(
-      :url => url,
-      :mirror => mirror,
-      :last_result => false,
-      :last_pinged_at => nil
-    )
+    post '/' do
+      if params[:url].empty? || params[:mirror].empty?
+        redirect "/"
+      end
 
-    if link.nil?
-      redirect "/"
+      url = params[:url].add_scheme
+      mirror = params[:mirror].add_scheme
+
+      broken_already = false
+      begin
+        url = RedirectFollower.new(url.add_scheme).resolve.url
+      rescue Timeout::Error
+        broken_already = true
+      end
+      mirror = RedirectFollower.new(mirror.add_scheme).resolve.url
+
+      if URI.parse(url).host == "relink.heroku.com"
+        redirect "/"
+      end
+
+      link = Link.create(
+        :url => url,
+        :mirror => mirror,
+        :last_result => false,
+        :last_pinged_at => DateTime.now
+      )
+
+      if link.nil?
+        redirect "/"
+      end
+      
+      link.ping! unless broken_already
+      redirect "/l/#{link.id}/view"
     end
 
-    link.ping!
-    redirect "/l/#{link.id}/view"
-  end
 
-  get '/l/:link/view/?' do |l|
-    begin
-      @link = Link.get(l)
-    rescue DataMapper::ObjectNotFoundError
-      redirect '/'
+    get '/l/:link/view/?' do |l|
+      begin
+        @link = Link.get(l)
+      rescue DataMapper::ObjectNotFoundError
+        redirect '/'
+      end
+
+      haml :view
     end
 
-    haml :view
-  end
+    get '/l/:link/?' do |l|
+      begin
+        link = Link.get(l)
+      rescue DataMapper::ObjectNotFoundError
+        redirect '/'
+      end
 
-  get '/l/:link/?' do |l|
-    begin
-      link = Link.get(l)
-    rescue DataMapper::ObjectNotFoundError
-      redirect '/'
+      if link.nil?
+        redirect "/"
+      end
+
+      if link.ping_again?
+        link.ping!
+      end
+
+      if URI.parse(link.link).host == "relink.heroku.com"
+        redirect "/"
+      end
+
+      redirect link.link, 301
     end
 
-    if link.nil?
-      redirect "/"
+    get '/l/:link/*/?' do |l, star|
+      redirect "/l/#{l}/"
     end
-
-    if link.ping_again?
-      link.ping!
-    end
-
-    if URI.parse(link.link).host == "relink.heroku.com"
-      redirect "/"
-    end
-
-    redirect link.link, 301
-  end
-
-  get '/l/:link/*/?' do |l, star|
-    redirect "/l/#{l}/"
   end
 end
